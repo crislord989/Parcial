@@ -42,8 +42,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/environment/backend && git pull origin main
-            pkill -f uvicorn || true
-            sudo at now <<< "PYTHONPATH=/home/ec2-user/environment/backend uvicorn app.main:app --host 0.0.0.0 --port 8000 >> /home/ec2-user/environment/backend/uvicorn.log 2>&1"
+            ~/start_backend.sh
             echo "Backend desplegado"
 
   deploy-frontend:
@@ -58,6 +57,5 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/environment/frontend && git pull origin main && npm ci && npm run build
-            pkill -f "serve" || true
-            sudo at now <<< "npx serve -s /home/ec2-user/environment/frontend/dist -l 3000 >> /home/ec2-user/environment/frontend/serve.log 2>&1"
+            ~/start_frontend.sh
             echo "Frontend desplegado"
