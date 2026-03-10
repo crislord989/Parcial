@@ -41,13 +41,11 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/environment/backend
-            git pull origin main
+            cd ~/environment/backend && git pull origin main
             pkill -f uvicorn || true
             sleep 1
-            export PYTHONPATH=/home/ec2-user/environment/backend
-            setsid uvicorn app.main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 < /dev/null &
-            echo "Backend desplegado OK"
+            setsid bash -c 'export PYTHONPATH=/home/ec2-user/environment/backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1' < /dev/null &
+            echo "Backend OK"
 
   deploy-frontend:
     needs: test-frontend
@@ -60,11 +58,8 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/environment/frontend
-            git pull origin main
-            npm ci
-            npm run build
+            cd ~/environment/frontend && git pull origin main && npm ci && npm run build
             pkill -f "serve" || true
             sleep 1
             setsid npx serve -s dist -l 3000 > serve.log 2>&1 < /dev/null &
-            echo "Frontend desplegado OK"
+            echo "Frontend OK"
