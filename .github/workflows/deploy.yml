@@ -1,0 +1,68 @@
+name: CI/CD Chinook
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install fastapi uvicorn pymysql sqlalchemy python-dotenv pytest httpx pytest-cov
+      - run: cd backend && pytest --cov=app -v
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: 3306
+          DB_NAME: Chinook
+          DB_USER: admin
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: cd frontend && npm ci && npm run test
+
+  deploy-backend:
+    needs: test-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Backend
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.BACKEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/environment/backend
+            git pull origin main
+            pip3.11 install fastapi uvicorn pymysql sqlalchemy python-dotenv pytest httpx pytest-cov
+            pkill -f uvicorn || true
+            nohup bash -c 'PYTHONPATH=/home/ec2-user/environment/backend uvicorn app.main:app --host 0.0.0.0 --port 8000' > uvicorn.log 2>&1 &
+
+  deploy-frontend:
+    needs: test-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Frontend
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/environment/frontend
+            git pull origin main
+            npm ci
+            npm run build
+            pkill -f "serve" || true
+            nohup npx serve -s dist -l 3000 &
