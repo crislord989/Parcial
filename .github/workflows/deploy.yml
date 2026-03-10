@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install fastapi uvicorn pymysql sqlalchemy python-dotenv pytest httpx pytest-cov
-      - run: cd backend && pytest --cov=app -v
+      - run: PYTHONPATH=$GITHUB_WORKSPACE pytest --cov=app -v
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: 3306
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: cd frontend && npm ci && npm run test
+      - run: npm ci && npm run test
 
   deploy-backend:
     needs: test-backend
