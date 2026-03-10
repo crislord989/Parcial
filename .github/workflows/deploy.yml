@@ -41,12 +41,17 @@ jobs:
           host: ${{ secrets.BACKEND_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          request_pty: true
           script: |
             cd ~/environment/backend
             git pull origin main
             pip3.11 install fastapi uvicorn pymysql sqlalchemy python-dotenv pytest httpx pytest-cov
             pkill -f uvicorn || true
-            nohup bash -c 'PYTHONPATH=/home/ec2-user/environment/backend uvicorn app.main:app --host 0.0.0.0 --port 8000' > uvicorn.log 2>&1 &
+            sleep 2
+            export PYTHONPATH=/home/ec2-user/environment/backend
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
+            disown
+            echo "Backend desplegado"
 
   deploy-frontend:
     needs: test-frontend
@@ -59,10 +64,14 @@ jobs:
           host: ${{ secrets.FRONTEND_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          request_pty: true
           script: |
             cd ~/environment/frontend
             git pull origin main
             npm ci
             npm run build
             pkill -f "serve" || true
-            nohup npx serve -s dist -l 3000 &
+            sleep 2
+            nohup npx serve -s dist -l 3000 > serve.log 2>&1 &
+            disown
+            echo "Frontend desplegado"
