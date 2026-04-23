@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy Backend a EC2 Back_P1
+      - name: Pull y dependencias backend
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.BACKEND_HOST }}
@@ -40,24 +40,25 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
-            cat > /tmp/deploy_backend.sh << 'SCRIPT'
-            #!/bin/bash
-            cd ~/environment/backend
-            git pull origin main
-            pip3.11 install -r requirements.txt --quiet
+            cd ~/environment/backend && git pull origin main
+      - name: Reiniciar uvicorn
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.BACKEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
             pkill -f uvicorn || true
             sleep 1
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 >> ~/uvicorn.log 2>&1 &
-            SCRIPT
-            chmod +x /tmp/deploy_backend.sh
-            bash -c 'nohup bash /tmp/deploy_backend.sh >> /tmp/deploy_backend.log 2>&1 & disown' &
+            bash -c 'nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir ~/environment/backend >> ~/uvicorn.log 2>&1 & disown' &
 
   deploy-frontend:
     needs: test-frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy Frontend a EC2 Front_P1
+      - name: Pull y build frontend
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.FRONTEND_HOST }}
@@ -65,17 +66,19 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
-            cat > /tmp/deploy_frontend.sh << 'SCRIPT'
-            #!/bin/bash
             cd ~/environment/frontend
-            echo "VITE_API_URL=http://BACKEND_PLACEHOLDER:8000/api" > .env
+            echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
             rm -rf node_modules
             npm install --quiet
             ./node_modules/.bin/vite build
+      - name: Reiniciar serve
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
             pkill -f serve || true
             sleep 1
-            nohup ./node_modules/.bin/serve -s dist -l 3000 >> ~/serve.log 2>&1 &
-            SCRIPT
-            sed -i 's|BACKEND_PLACEHOLDER|${{ secrets.BACKEND_HOST }}|g' /tmp/deploy_frontend.sh
-            chmod +x /tmp/deploy_frontend.sh
-            bash -c 'nohup bash /tmp/deploy_frontend.sh >> /tmp/deploy_frontend.log 2>&1 & disown' &
+            bash -c 'nohup ~/environment/frontend/node_modules/.bin/serve -s ~/environment/frontend/dist -l 3000 >> ~/serve.log 2>&1 & disown' &
