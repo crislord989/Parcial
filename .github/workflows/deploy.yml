@@ -1,5 +1,4 @@
 name: CI/CD Chinook
-
 on:
   push:
     branches: [main]
@@ -39,12 +38,8 @@ jobs:
           host: ${{ secrets.BACKEND_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/environment/backend
-            git pull origin main
-            pip3.11 install -r requirements.txt
-            pkill -f uvicorn || true
-            setsid nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 < /dev/null &
+          command_timeout: 10m
+          script: echo "~/start_backend.sh" | at now
 
   deploy-frontend:
     needs: test-frontend
@@ -57,10 +52,5 @@ jobs:
           host: ${{ secrets.FRONTEND_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 10m        # ← agregar esto
-          script: |
-            cd ~/environment/frontend
-            echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
-            npm ci && npm run build
-            pkill -f serve || true
-            setsid nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 < /dev/null &
+          command_timeout: 10m
+          script: echo "~/start_frontend.sh" | at now
