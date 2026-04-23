@@ -38,8 +38,7 @@ jobs:
             git pull origin main
             pip3.11 install -r requirements.txt
             pkill -f uvicorn || true
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 &
-            disown
+            setsid nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 < /dev/null &
 
   deploy-frontend:
     needs: test-frontend
@@ -57,5 +56,4 @@ jobs:
             echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
             npm ci && npm run build
             pkill -f serve || true
-            nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 &
-            disown
+            setsid nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 < /dev/null &

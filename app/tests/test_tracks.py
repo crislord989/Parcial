@@ -1,16 +1,24 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-
+import pytest
 from fastapi.testclient import TestClient
-from app.main import app
+from unittest.mock import patch, MagicMock
+
+with patch("app.database.create_engine"), \
+     patch("app.database.SessionLocal"), \
+     patch("app.database.Base"):
+    from app.main import app
 
 client = TestClient(app)
 
-def test_root():
-    res = client.get("/")
-    assert res.status_code == 200
+def test_get_tracks_status():
+    mock_db = MagicMock()
+    mock_db.execute.return_value.fetchall.return_value = []
+    with patch("app.routes.tracks.get_db", return_value=iter([mock_db])):
+        res = client.get("/api/tracks/")
+        assert res.status_code == 200
 
-def test_root_message():
-    res = client.get("/")
-    assert res.json()["message"] == "Chinook API funcionando"
+def test_search_tracks():
+    mock_db = MagicMock()
+    mock_db.execute.return_value.fetchall.return_value = []
+    with patch("app.routes.tracks.get_db", return_value=iter([mock_db])):
+        res = client.get("/api/tracks/?q=Love")
+        assert res.status_code == 200
