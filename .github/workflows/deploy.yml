@@ -1,36 +1,60 @@
-deploy-backend:
-  needs: test-backend
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
-    - name: Deploy Backend a EC2 Back_P1
-      uses: appleboy/ssh-action@v1
-      with:
-        host: ${{ secrets.BACKEND_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd ~/environment/backend
-          git pull origin main
-          pip3.11 install -r requirements.txt
-          pkill -f uvicorn || true
-          nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 &
+name: CI/CD Chinook
 
-deploy-frontend:
-  needs: test-frontend
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
-    - name: Deploy Frontend a EC2 Front_P1
-      uses: appleboy/ssh-action@v1
-      with:
-        host: ${{ secrets.FRONTEND_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd ~/environment/frontend
-          git pull origin main
-          echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
-          npm ci && npm run build
-          pkill -f serve || true
-          nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 &
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r requirements.txt
+      - run: pytest --cov=app -v
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci && npm run test
+
+  deploy-backend:
+    needs: test-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Backend a EC2 Back_P1
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.BACKEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/environment/backend
+            git pull origin main
+            pip3.11 install -r requirements.txt
+            pkill -f uvicorn || true
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 &
+
+  deploy-frontend:
+    needs: test-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Frontend a EC2 Front_P1
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/environment/frontend
+            git pull origin main
+            echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
+            npm ci && npm run build
+            pkill -f serve || true
+            nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 &
