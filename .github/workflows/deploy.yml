@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install -r backend/requirements.txt
+      - run: cd backend && pip install -r requirements.txt
       - run: cd backend && pytest --cov=app -v
 
   test-frontend:
@@ -53,7 +53,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/environment/frontend
-            git pull origin main
             echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
             npm ci && npm run build
             pkill -f serve || true
