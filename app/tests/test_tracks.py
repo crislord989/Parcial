@@ -2,10 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
-with patch("app.database.create_engine"), \
-     patch("app.database.SessionLocal"), \
-     patch("app.database.Base"):
-    from app.main import app
+from app.main import app
 
 client = TestClient(app)
 
