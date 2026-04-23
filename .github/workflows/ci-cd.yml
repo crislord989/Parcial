@@ -32,14 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Pull backend
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.BACKEND_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 10m
-          script: cd ~/environment/backend && git pull origin main
       - name: Reiniciar uvicorn
         uses: appleboy/ssh-action@v1
         with:
@@ -48,16 +40,14 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
-            pkill -f uvicorn || true
-            sleep 1
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir ~/environment/backend > ~/uvicorn.log 2>&1 &
+            cd ~/environment/backend && git pull origin main && pkill -f uvicorn || true && sleep 1 && nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 &
 
   deploy-frontend:
     needs: test-frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build frontend
+      - name: Build y reiniciar serve
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.FRONTEND_HOST }}
@@ -65,18 +55,4 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
-            cd ~/environment/frontend
-            echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
-            npm install --quiet
-            ./node_modules/.bin/vite build
-      - name: Reiniciar serve
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.FRONTEND_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 10m
-          script: |
-            pkill -f serve || true
-            sleep 1
-            nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 &
+            cd ~/environment/frontend && echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env && npm install --quiet && ./node_modules/.bin/vite build && pkill -f serve || true && sleep 1 && nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 &
