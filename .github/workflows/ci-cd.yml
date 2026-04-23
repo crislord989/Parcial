@@ -32,15 +32,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Pull y dependencias backend
+      - name: Pull backend
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.BACKEND_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
-          script: |
-            cd ~/environment/backend && git pull origin main
+          script: cd ~/environment/backend && git pull origin main
       - name: Reiniciar uvicorn
         uses: appleboy/ssh-action@v1
         with:
@@ -51,14 +50,14 @@ jobs:
           script: |
             pkill -f uvicorn || true
             sleep 1
-            bash -c 'nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir ~/environment/backend >> ~/uvicorn.log 2>&1 & disown' &
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir ~/environment/backend > ~/uvicorn.log 2>&1 &
 
   deploy-frontend:
     needs: test-frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Pull y build frontend
+      - name: Build frontend
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.FRONTEND_HOST }}
@@ -80,4 +79,4 @@ jobs:
           script: |
             pkill -f serve || true
             sleep 1
-            bash -c 'nohup ~/environment/frontend/node_modules/.bin/serve -s ~/environment/frontend/dist -l 3000 >> ~/serve.log 2>&1 & disown' &
+            nohup npx serve -s dist -l 3000 > ~/serve.log 2>&1 &
