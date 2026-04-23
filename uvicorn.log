@@ -1,0 +1,16 @@
+INFO:     Started server process [8590]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     200.118.81.12:16509 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:16507 - "GET /api/tracks/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:16509 - "GET /api/tracks/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:16507 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:9563 - "GET /api/tracks/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:9558 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:9563 - "GET /api/customers/ HTTP/1.1" 200 OK
+INFO:     200.118.81.12:9558 - "GET /api/tracks/ HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [8590]

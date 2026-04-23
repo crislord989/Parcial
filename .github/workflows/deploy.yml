@@ -54,3 +54,23 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: echo "~/start_frontend.sh" | at now
+
+  etl-pipeline:
+    needs: [deploy-backend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install boto3 pandas pyarrow holidays pymysql python-dotenv
+      - name: Ejecutar ETL
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: admin
+          DB_NAME: Chinook
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: python deploy_etl.py
