@@ -2,7 +2,6 @@ name: CI/CD Chinook
 on:
   push:
     branches: [main]
-
 jobs:
   test-backend:
     runs-on: ubuntu-latest
@@ -39,7 +38,10 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
-          script: echo "~/start_backend.sh" | at now
+          script: |
+            cd ~/environment/backend && git pull origin main
+            ~/environment/backend/scripts/start_backend.sh
+            echo "Backend desplegado"
 
   deploy-frontend:
     needs: test-frontend
@@ -53,7 +55,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
-          script: echo "~/start_frontend.sh" | at now
+          script: |
+            cd ~/environment/frontend && git pull origin main
+            echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env
+            npm ci && npm run build
+            ~/start_frontend.sh
+            echo "Frontend desplegado"
 
   etl-pipeline:
     needs: [deploy-backend]
@@ -63,14 +70,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install boto3 pandas pyarrow holidays pymysql python-dotenv
-      - name: Ejecutar ETL
+      - run: pip install boto3 pandas pyarrow holidays
+      - name: Ejecutar ETL DimDate
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: admin
-          DB_NAME: Chinook
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: python deploy_etl.py
+        run: python3 etl/etl_dim_date.py
+      - name: Ejecutar ETL RDS desde Back_P1
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.BACKEND_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            cd ~/environment/backend && git pull origin main
+            pip3.11 install boto3 pandas pyarrow pymysql python-dotenv
+            python3.11 etl/etl_dim_track.py
+            python3.11 etl/etl_fact_sales.py
+            echo "ETL RDS completado"
