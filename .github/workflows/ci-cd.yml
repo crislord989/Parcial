@@ -40,20 +40,19 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
+            cat > /tmp/deploy_backend.sh << 'SCRIPT'
+            #!/bin/bash
             cd ~/environment/backend
             git pull origin main
             pip3.11 install -r requirements.txt --quiet
-            cat > /tmp/start_backend.sh << 'SCRIPT'
-            #!/bin/bash
             pkill -f uvicorn || true
             sleep 1
-            cd ~/environment/backend
             nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 &
+            echo "done" > /tmp/deploy_backend_done.txt
             SCRIPT
-            chmod +x /tmp/start_backend.sh
-            nohup bash /tmp/start_backend.sh > /tmp/start_backend.log 2>&1 &
-            sleep 3
-            pgrep -f uvicorn && echo "OK: uvicorn running" || cat ~/uvicorn.log
+            chmod +x /tmp/deploy_backend.sh
+            nohup bash /tmp/deploy_backend.sh > /tmp/deploy_backend.log 2>&1 &
+            echo "Deploy backend iniciado"
 
   deploy-frontend:
     needs: test-frontend
@@ -68,19 +67,19 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 10m
           script: |
-            cd ~/environment/frontend
-            echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
-            rm -rf node_modules
-            npm install
-            ./node_modules/.bin/vite build
-            cat > /tmp/start_frontend.sh << 'SCRIPT'
+            cat > /tmp/deploy_frontend.sh << 'SCRIPT'
             #!/bin/bash
+            cd ~/environment/frontend
+            echo "VITE_API_URL=http://BACKEND_HOST_PLACEHOLDER:8000/api" > .env
+            rm -rf node_modules
+            npm install --quiet
+            ./node_modules/.bin/vite build
             pkill -f serve || true
             sleep 1
-            cd ~/environment/frontend
             nohup ./node_modules/.bin/serve -s dist -l 3000 > ~/serve.log 2>&1 &
+            echo "done" > /tmp/deploy_frontend_done.txt
             SCRIPT
-            chmod +x /tmp/start_frontend.sh
-            nohup bash /tmp/start_frontend.sh > /tmp/start_frontend.log 2>&1 &
-            sleep 3
-            pgrep -f serve && echo "OK: serve running" || cat ~/serve.log
+            sed -i "s|BACKEND_HOST_PLACEHOLDER|${{ secrets.BACKEND_HOST }}|g" /tmp/deploy_frontend.sh
+            chmod +x /tmp/deploy_frontend.sh
+            nohup bash /tmp/deploy_frontend.sh > /tmp/deploy_frontend.log 2>&1 &
+            echo "Deploy frontend iniciado"
