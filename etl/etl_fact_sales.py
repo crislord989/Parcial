@@ -4,19 +4,17 @@ import pymysql
 import pyarrow as pa
 import pyarrow.parquet as pq
 import io
-from dotenv import load_dotenv
 import os
 
-load_dotenv('/home/ec2-user/environment/backend/.env')
 
 BUCKET = 'chinook-dw-987'
 PREFIX = 'warehouse/fact_sales/'
 
 conn = pymysql.connect(
-    host=os.getenv('DB_HOST'),
-    user=os.getenv('DB_USER'),
-    password=os.getenv('DB_PASSWORD'),
-    database=os.getenv('DB_NAME')
+    host=os.getenv('DB_HOST', '').strip(),
+    user=os.getenv('DB_USER', '').strip(),
+    password=os.getenv('DB_PASSWORD', '').strip(),
+    database=os.getenv('DB_NAME', '').strip()
 )
 
 sql = """
