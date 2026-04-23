@@ -1,21 +1,20 @@
-import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import MagicMock
 from app.main import app
+from app.database import get_db
 
+def override_get_db():
+    mock_db = MagicMock()
+    mock_db.execute.return_value.fetchall.return_value = []
+    yield mock_db
+
+app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 def test_get_tracks_status():
-    mock_db = MagicMock()
-    mock_db.execute.return_value.fetchall.return_value = []
-    with patch("app.routes.tracks.get_db", return_value=iter([mock_db])):
-        res = client.get("/api/tracks/")
-        assert res.status_code == 200
+    res = client.get("/api/tracks/")
+    assert res.status_code == 200
 
 def test_search_tracks():
-    mock_db = MagicMock()
-    mock_db.execute.return_value.fetchall.return_value = []
-    with patch("app.routes.tracks.get_db", return_value=iter([mock_db])):
-        res = client.get("/api/tracks/?q=Love")
-        assert res.status_code == 200
+    res = client.get("/api/tracks/?q=Love")
+    assert res.status_code == 200
