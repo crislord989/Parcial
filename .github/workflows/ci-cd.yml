@@ -68,7 +68,6 @@ jobs:
           script: |
             cd ~/environment/frontend
             echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
-            rm -rf node_modules
             npm install --quiet
             ./node_modules/.bin/vite build
       - name: Reiniciar serve
