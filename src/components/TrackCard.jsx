@@ -1,13 +1,18 @@
-function TrackCard({ track, onBuy }) {
+function TrackCard({ track, onAddToCart, inCart }) {
   return (
-    <div style={{ border: '1px solid #ccc', padding: '12px', margin: '8px', borderRadius: '8px' }}>
-      <h4>{track.name}</h4>
-      <p>Precio: ${track.price}</p>
-      <button onClick={() => onBuy(track)} style={{ padding: '6px 12px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-        Comprar
+    <div className="track-card">
+      <div className="track-info">
+        <span className="track-name">{track.name}</span>
+        <span className="track-price">${track.price.toFixed(2)}</span>
+      </div>
+      <button
+        className={`add-btn ${inCart ? 'added' : ''}`}
+        onClick={() => onAddToCart(track)}
+        disabled={inCart}
+      >
+        {inCart ? '✓ En carrito' : '+ Agregar'}
       </button>
     </div>
   );
 }
-
 export default TrackCard;
