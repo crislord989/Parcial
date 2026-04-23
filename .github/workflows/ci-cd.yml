@@ -47,12 +47,10 @@ jobs:
             pip3.11 install -r requirements.txt --quiet
             pkill -f uvicorn || true
             sleep 1
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > ~/uvicorn.log 2>&1 &
-            echo "done" > /tmp/deploy_backend_done.txt
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 >> ~/uvicorn.log 2>&1 &
             SCRIPT
             chmod +x /tmp/deploy_backend.sh
-            nohup bash /tmp/deploy_backend.sh > /tmp/deploy_backend.log 2>&1 &
-            echo "Deploy backend iniciado"
+            bash -c 'nohup bash /tmp/deploy_backend.sh >> /tmp/deploy_backend.log 2>&1 & disown' &
 
   deploy-frontend:
     needs: test-frontend
@@ -70,16 +68,14 @@ jobs:
             cat > /tmp/deploy_frontend.sh << 'SCRIPT'
             #!/bin/bash
             cd ~/environment/frontend
-            echo "VITE_API_URL=http://BACKEND_HOST_PLACEHOLDER:8000/api" > .env
+            echo "VITE_API_URL=http://BACKEND_PLACEHOLDER:8000/api" > .env
             rm -rf node_modules
             npm install --quiet
             ./node_modules/.bin/vite build
             pkill -f serve || true
             sleep 1
-            nohup ./node_modules/.bin/serve -s dist -l 3000 > ~/serve.log 2>&1 &
-            echo "done" > /tmp/deploy_frontend_done.txt
+            nohup ./node_modules/.bin/serve -s dist -l 3000 >> ~/serve.log 2>&1 &
             SCRIPT
-            sed -i "s|BACKEND_HOST_PLACEHOLDER|${{ secrets.BACKEND_HOST }}|g" /tmp/deploy_frontend.sh
+            sed -i 's|BACKEND_PLACEHOLDER|${{ secrets.BACKEND_HOST }}|g' /tmp/deploy_frontend.sh
             chmod +x /tmp/deploy_frontend.sh
-            nohup bash /tmp/deploy_frontend.sh > /tmp/deploy_frontend.log 2>&1 &
-            echo "Deploy frontend iniciado"
+            bash -c 'nohup bash /tmp/deploy_frontend.sh >> /tmp/deploy_frontend.log 2>&1 & disown' &
