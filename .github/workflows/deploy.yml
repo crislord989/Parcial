@@ -13,6 +13,12 @@ jobs:
         with: { python-version: '3.11' }
       - run: pip install -r requirements.txt
       - run: pytest --cov=app -v
+        env:
+          DB_USER: test
+          DB_PASSWORD: test
+          DB_HOST: localhost
+          DB_PORT: "3306"
+          DB_NAME: chinook
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -51,6 +57,7 @@ jobs:
           host: ${{ secrets.FRONTEND_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m        # ← agregar esto
           script: |
             cd ~/environment/frontend
             echo "VITE_API_URL=http://${{ secrets.BACKEND_HOST }}:8000/api" > .env
